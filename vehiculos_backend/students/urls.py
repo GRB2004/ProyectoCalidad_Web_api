@@ -7,4 +7,5 @@ router.register(r'estudiantes', EstudianteViewSet, basename='estudiante')
 
 urlpatterns = [
     path('api/', include(router.urls)),
+    path('api/estudiantes/buscar/', EstudianteViewSet.as_view({'get': 'buscar'}), name='estudiante-buscar'),
 ]
