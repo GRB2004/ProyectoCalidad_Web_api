@@ -1,7 +1,13 @@
 from rest_framework import serializers
-from .models import Vehiculo
+from .models import RegistroActivo, RegistroHistorial
 
-class VehiculoSerializer(serializers.ModelSerializer):
+class RegistroActivoSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Vehiculo
+        model = RegistroActivo
+        fields = '__all__'
+        read_only_fields = ['entry_time']
+
+class RegistroHistorialSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RegistroHistorial
         fields = '__all__'

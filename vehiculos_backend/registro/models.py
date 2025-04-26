@@ -1,14 +1,27 @@
 from django.db import models
+from django.utils import timezone
 
-class Vehiculo(models.Model):
-    matricula = models.CharField(max_length=20, unique=True)
-    apellido_paterno = models.CharField(max_length=50)
-    apellido_materno = models.CharField(max_length=50)
-    nombre = models.CharField(max_length=100)
-    email = models.EmailField()
-    modelo_vehiculo = models.CharField(max_length=100)
+class RegistroActivo(models.Model):
     placa = models.CharField(max_length=15)
-    fecha_registro = models.DateTimeField(auto_now_add=True)
+    estudiante_matricula = models.CharField(max_length=20)
+    entry_time = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = "Registro Activo"
+        verbose_name_plural = "Registros Activos"
 
-    def __str__(self):
-        return f"{self.matricula} - {self.nombre}"
+class RegistroHistorial(models.Model):
+    placa = models.CharField(max_length=15)
+    estudiante_matricula = models.CharField(max_length=20)
+    entry_time = models.DateTimeField()
+    exit_time = models.DateTimeField()
+    duration = models.DurationField()
+    
+    class Meta:
+        verbose_name = "Registro Histórico"
+        verbose_name_plural = "Registros Históricos"
+
+    def save(self, *args, **kwargs):
+        if self.exit_time and self.entry_time:
+            self.duration = self.exit_time - self.entry_time
+        super().save(*args, **kwargs)

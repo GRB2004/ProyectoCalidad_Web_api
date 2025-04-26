@@ -1,4 +1,4 @@
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser
@@ -7,11 +7,21 @@ from io import TextIOWrapper
 from django.db import transaction
 from .models import Estudiante
 from .serializers import EstudianteSerializer, CSVUploadSerializer
+from django.db.models import Q
 
 class EstudianteViewSet(viewsets.ModelViewSet):
     queryset = Estudiante.objects.all()
     serializer_class = EstudianteSerializer
     parser_classes = (MultiPartParser,)
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = [
+        'matricula',
+        'apellido_paterno',
+        'apellido_materno',
+        'nombre',
+        'email'
+    ]
+    ordering_fields = '__all__'
 
     @action(detail=False, methods=['post'], serializer_class=CSVUploadSerializer)
     def upload_csv(self, request):
@@ -49,3 +59,22 @@ class EstudianteViewSet(viewsets.ModelViewSet):
             'errores': errores
         }
         return Response(resultado, status=status.HTTP_201_CREATED)
+    
+    # Nueva acción para búsqueda personalizada
+    @action(detail=False, methods=['get'])
+    def buscar(self, request):
+        term = request.query_params.get('q', '')
+        queryset = self.filter_queryset(self.get_queryset())
+        
+        if term:
+            queryset = queryset.filter(
+                Q(matricula__icontains=term) |
+                Q(apellido_paterno__icontains=term) |
+                Q(apellido_materno__icontains=term) |
+                Q(nombre__icontains=term) |
+                Q(email__icontains=term)
+            )
+            
+        page = self.paginate_queryset(queryset)
+        serializer = self.get_serializer(page, many=True)
+        return self.get_paginated_response(serializer.data)
