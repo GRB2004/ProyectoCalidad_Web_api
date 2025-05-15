@@ -1,8 +1,8 @@
 import os
 import sys
 import csv
-import django
-from django.db import transaction
+import django # type: ignore
+from django.db import transaction # type: ignore
 
 # Configurar el entorno de Django
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
