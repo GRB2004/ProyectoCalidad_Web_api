@@ -20,6 +20,8 @@ from students import views_students
 from registro import views_registro
 from django.contrib import admin
 
+from students.auth import SimpleLogin, SimpleLogout
+
 router = routers.DefaultRouter()
 router.register(r'registros-activos', views_registro.RegistroActivoViewSet)
 router.register(r'registros-historicos', views_registro.RegistroHistorialViewSet)
@@ -29,4 +31,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include(router.urls)),
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
+    path('api/login/', SimpleLogin.as_view(), name='login'),    # Modificada
+    path('api/logout/', SimpleLogout.as_view(), name='logout'),
 ]

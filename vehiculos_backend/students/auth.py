@@ -1,74 +1,65 @@
-from django.shortcuts import render
-from django.db.models import *
-from django.db import transaction
-from vehiculos_backend.serializers import CSVUploadSerializer
-from rest_framework.authentication import SessionAuthentication, TokenAuthentication
-from rest_framework.generics import CreateAPIView, DestroyAPIView, UpdateAPIView
-from rest_framework import permissions
-from rest_framework import generics
-from rest_framework import status
+from django.contrib.auth.models import User
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
+from rest_framework import status
 from rest_framework.views import APIView
-from rest_framework.decorators import api_view
-from rest_framework.reverse import reverse
-from rest_framework import viewsets
-from django.shortcuts import get_object_or_404
-from django.core import serializers
-from django.utils.html import strip_tags
-from django.contrib.auth import authenticate, login
-from django.contrib.auth.models import Group
-from django.contrib.auth import get_user_model
-from django_filters.rest_framework import DjangoFilterBackend
-from django_filters import rest_framework as filters
-from datetime import datetime
-from django.conf import settings
-from django.template.loader import render_to_string
-import string
-import random
+from rest_framework.permissions import IsAuthenticated
+from students.models import Estudiante
+from students.serializers import CSVUploadSerializer
 
-from vehiculos_backend.students.models import Estudiante
-
-class CustomAuthToken(ObtainAuthToken):
-
+class SimpleLogin(APIView):
     def post(self, request):
-        serializer = self.serializer_class(data=request.data,
-                                           context={'request': request})
+        print("=== Iniciando proceso de autenticación simple ===")
+        print("Datos recibidos:", request.data)
 
-        serializer.is_valid(raise_exception=True)
-        user = serializer.validated_data['user']
-        if user.is_active:
-            token = Token.objects.get_or_create(user=user)[0]
+        email = request.data.get('email')
+        matricula = request.data.get('matricula')
 
-            # Buscar el objeto Estudiante por el usuario autenticado
-            estudiante = Estudiante.objects.filter(user=user).first()
-            if estudiante:
-                estudiante_data = CSVUploadSerializer(estudiante).data
-                estudiante_data["token"] = token.key
-                # No se agrega rol, solo los datos del estudiante
-                return Response(estudiante_data, 200)
+        if not email or not matricula:
+            return Response({
+                "error": "Datos incompletos",
+                "details": "Se requiere email y matrícula"
+            }, status=status.HTTP_400_BAD_REQUEST)
 
-            # Si no existe el estudiante, retornar error
-            return Response({"details": "Usuario no encontrado en Estudiantes"}, 403)
+        try:
+            # Buscar al estudiante por matrícula y email
+            estudiante = Estudiante.objects.get(matricula=matricula, email=email)
+            
+            # Crear sesión
+            request.session['estudiante_id'] = estudiante.id
+            request.session['matricula'] = estudiante.matricula
+            
+            # Devolver datos del estudiante
+            estudiante_data = CSVUploadSerializer(estudiante).data
+            
+            return Response({
+                "message": "Inicio de sesión exitoso",
+                "estudiante": estudiante_data
+            }, status=status.HTTP_200_OK)
 
-        return Response({}, status=status.HTTP_403_FORBIDDEN)
+        except Estudiante.DoesNotExist:
+            return Response({
+                "error": "Credenciales inválidas",
+                "details": "La matrícula o el email no coinciden con nuestros registros"
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        
+        except Exception as e:
+            print(f"Error inesperado: {str(e)}")
+            return Response({
+                "error": "Error en el servidor",
+                "details": str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
-class Logout(generics.GenericAPIView):
-
-    permission_classes = (permissions.IsAuthenticated,)
-
-    def get(self, request, *args, **kwargs):
-
-        print("logout")
-        user = request.user
-        print(str(user))
-        if user.is_active:
-            token = Token.objects.get(user=user)
-            token.delete()
-
-            return Response({'logout':True})
-
-
-        return Response({'logout': False})
+class SimpleLogout(APIView):
+    def post(self, request):
+        try:
+            request.session.flush()
+            return Response({
+                "message": "Sesión cerrada exitosamente"
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            print(f"Error en logout: {str(e)}")
+            return Response({
+                "error": "Error al cerrar sesión"
+            }, status=status.HTTP_400_BAD_REQUEST)

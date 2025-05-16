@@ -11,6 +11,6 @@ urlpatterns = [
     path('api/', include(router.urls)),
     path('api/estudiantes/buscar/', EstudianteViewSet.as_view({'get': 'buscar'}), name='estudiante-buscar'),
     path('api/', include(router.urls)),
-    path('api/login/', CustomAuthToken.as_view(), name='api-login'),   # <-- Endpoint de login
-    path('api/logout/', Logout.as_view(), name='api-logout'),          # <-- Endpoint de logout
+    #path('token/', CustomAuthToken.as_view()),   # <-- Endpoint de login
+    #path('logout/', Logout.as_view()),          # <-- Endpoint de logout
 ]
