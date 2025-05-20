@@ -19,8 +19,10 @@ from rest_framework import routers
 from students import views_students 
 from registro import views_registro
 from django.contrib import admin
-
-from students.auth import SimpleLogin, SimpleLogout, StudentSearch
+from students.auth import (
+    SimpleLogin, SimpleLogout, StudentSearch, 
+    SimpleEntry, SimpleExit, VehiculosActivos, VehiculosHistorial
+)
 
 router = routers.DefaultRouter()
 router.register(r'registros-activos', views_registro.RegistroActivoViewSet)
@@ -34,4 +36,12 @@ urlpatterns = [
     path('api/login/', SimpleLogin.as_view(), name='login'),
     path('api/logout/', SimpleLogout.as_view(), name='logout'),
     path('api/search/', StudentSearch.as_view(), name='student-search'),
+    path('api/vehiculos/entrada/', SimpleEntry.as_view(), name='vehicle-entry'),
+    path('api/vehiculos/salida/', SimpleExit.as_view(), name='vehicle-exit'),
+    path('api/vehiculos/activos/<str:matricula>/', VehiculosActivos.as_view(), name='vehiculos-activos'),
+    path('api/vehiculos/historial/<str:matricula>/', VehiculosHistorial.as_view(), name='vehiculos-historial'),
+
+    path('api/vehiculos/historial/<str:matricula>/', VehiculosHistorial.as_view(), name='vehiculos-historial'),
+    path('api/estudiantes/<str:matricula>/vehiculos/entrada/', SimpleEntry.as_view(), name='vehicle-entry'),
+    path('api/estudiantes/<str:matricula>/vehiculos/salida/', SimpleExit.as_view(), name='vehicle-exit'),
 ]

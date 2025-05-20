@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
-from students.models import Estudiante
+from students.models import Estudiante, Entrada
 from students.serializers import CSVUploadSerializer
 
 class SimpleLogin(APIView):
@@ -120,3 +120,162 @@ class StudentSearch(APIView):
                 "error": "Error en el servidor",
                 "details": str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+    
+class SimpleEntry(APIView):
+    def post(self, request, matricula=None):
+        print("\n=== Debug SimpleEntry ===")
+        print(f"Content-Type: {request.content_type}")
+        print(f"Request Method: {request.method}")
+        print(f"Request Data: {request.data}")
+        print(f"URL Matrícula: {matricula}")
+        
+        try:
+            # Validar formato de datos
+            if not isinstance(request.data, dict):
+                print("Error: request.data no es un diccionario")
+                return Response({
+                    "error": "Formato de datos inválido",
+                    "details": "Se esperaba un objeto JSON"
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # Si no viene en la URL, intentar obtener del body
+            if not matricula:
+                matricula = request.data.get('matricula')
+                print(f"Matrícula del body: {matricula}")
+            
+            if not matricula:
+                print("Error: No se proporcionó matrícula")
+                return Response({
+                    "error": "Se requiere matrícula del estudiante",
+                    "details": "La matrícula no fue proporcionada en la URL ni en el cuerpo de la solicitud"
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # Verificar campos requeridos - aceptar tanto 'placa' como 'placas'
+            placas = request.data.get('placas') or request.data.get('placa')
+            print(f"Placas recibidas: {placas}")
+            
+            if not placas:
+                print("Error: No se proporcionaron placas")
+                return Response({
+                    "error": "Se requiere el número de placas",
+                    "details": "El campo 'placas' o 'placa' es obligatorio"
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # Verificar si existe el estudiante
+            try:
+                print(f"Buscando estudiante con matrícula: {matricula}")
+                estudiante = Estudiante.objects.get(matricula=matricula)
+                print(f"Estudiante encontrado: {estudiante.nombre}")
+            except Estudiante.DoesNotExist:
+                print(f"Error: No se encontró estudiante con matrícula {matricula}")
+                return Response({
+                    "error": f"No se encontró estudiante con matrícula {matricula}",
+                    "details": "El estudiante no está registrado en el sistema"
+                }, status=status.HTTP_404_NOT_FOUND)
+
+            # Crear nuevo registro de entrada
+            try:
+                print("Creando registro de entrada...")
+                entrada = Entrada.objects.create(
+                    estudiante=estudiante,
+                    placas=str(placas).upper(),  # Asegurar que sea string y convertir a mayúsculas
+                    entrada=request.data.get('entrada', ''),
+                    acciones=request.data.get('acciones', 'activo')
+                )
+                print(f"Entrada creada con ID: {entrada.id}")
+            except Exception as e:
+                print(f"Error al crear entrada: {str(e)}")
+                return Response({
+                    "error": "Error al crear el registro de entrada",
+                    "details": str(e)
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # Respuesta exitosa
+            response_data = {
+                "message": "Entrada registrada exitosamente",
+                "entrada_id": entrada.id,
+                "datos": {
+                    "estudiante": estudiante.matricula,
+                    "placas": entrada.placas,
+                    "entrada": entrada.entrada,
+                    "acciones": entrada.acciones
+                }
+            }
+            print(f"Respuesta exitosa: {response_data}")
+            return Response(response_data, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            print(f"Error interno del servidor: {str(e)}")
+            return Response({
+                "error": "Error interno del servidor",
+                "details": str(e),
+                "request_data": request.data
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class SimpleExit(APIView):
+    def post(self, request, matricula=None):
+        try:
+            # Verificar si existe el estudiante
+            estudiante = Estudiante.objects.filter(matricula=matricula).first()
+            if not estudiante:
+                return Response({
+                    "error": f"No se encontró estudiante con matrícula {matricula}"
+                }, status=status.HTTP_404_NOT_FOUND)
+
+            # Aquí puedes agregar la lógica para registrar la salida
+            return Response({
+                "message": "Salida registrada exitosamente"
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            print(f"Error en salida: {str(e)}")
+            return Response({
+                "error": "Error al registrar salida"
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+class VehiculosActivos(APIView):
+    def get(self, request, matricula=None):
+        try:
+            estudiante = Estudiante.objects.filter(matricula=matricula).first()
+            if not estudiante:
+                return Response({
+                    "error": f"No se encontró estudiante con matrícula {matricula}"
+                }, status=status.HTTP_404_NOT_FOUND)
+
+            entradas_activas = Entrada.objects.filter(
+                estudiante=estudiante,
+                acciones='activo'
+            ).values('placas', 'entrada')
+
+            return Response({
+                "message": "Vehículos activos encontrados",
+                "vehiculos": list(entradas_activas)
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({
+                "error": "Error al obtener vehículos activos",
+                "details": str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+class VehiculosHistorial(APIView):
+    def get(self, request, matricula=None):
+        try:
+            estudiante = Estudiante.objects.filter(matricula=matricula).first()
+            if not estudiante:
+                return Response({
+                    "error": f"No se encontró estudiante con matrícula {matricula}"
+                }, status=status.HTTP_404_NOT_FOUND)
+
+            historial = Entrada.objects.filter(
+                estudiante=estudiante
+            ).order_by('-entrada').values('placas', 'entrada', 'acciones')
+
+            return Response({
+                "message": "Historial de vehículos encontrado",
+                "historial": list(historial)
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({
+                "error": "Error al obtener historial",
+                "details": str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
