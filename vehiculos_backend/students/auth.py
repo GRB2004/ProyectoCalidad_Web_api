@@ -215,23 +215,61 @@ class SimpleEntry(APIView):
 
 class SimpleExit(APIView):
     def post(self, request, matricula=None):
+        print("\n=== Debug SimpleExit ===")
+        print(f"Content-Type: {request.content_type}")
+        print(f"Request Method: {request.method}")
+        print(f"Request Data: {request.data}")
+        print(f"URL Matrícula: {matricula}")
+        
         try:
-            # Verificar si existe el estudiante
-            estudiante = Estudiante.objects.filter(matricula=matricula).first()
-            if not estudiante:
+            # Verificar campos requeridos
+            placas = request.data.get('placas') or request.data.get('placa')
+            print(f"Placas recibidas: {placas}")
+            
+            if not placas:
+                print("Error: No se proporcionaron placas")
                 return Response({
-                    "error": f"No se encontró estudiante con matrícula {matricula}"
+                    "error": "Se requiere el número de placas",
+                    "details": "El campo 'placas' o 'placa' es obligatorio"
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # Buscar la entrada activa por placas
+            try:
+                entrada = Entrada.objects.get(
+                    placas=str(placas).upper(),
+                    acciones='activo'
+                )
+                print(f"Entrada encontrada: {entrada.id}")
+                estudiante = entrada.estudiante
+                print(f"Estudiante asociado: {estudiante.matricula}")
+                
+            except Entrada.DoesNotExist:
+                print(f"No se encontró entrada activa para las placas: {placas}")
+                return Response({
+                    "error": "No se encontró registro activo",
+                    "details": f"No hay un registro activo para las placas {placas}"
                 }, status=status.HTTP_404_NOT_FOUND)
 
-            # Aquí puedes agregar la lógica para registrar la salida
+            # Actualizar el estado de la entrada
+            entrada.acciones = 'inactivo'
+            entrada.save()
+            print(f"Entrada actualizada: {entrada.id}")
+
             return Response({
-                "message": "Salida registrada exitosamente"
+                "message": "Salida registrada exitosamente",
+                "datos": {
+                    "estudiante": estudiante.matricula,
+                    "placas": entrada.placas,
+                    "entrada": entrada.entrada
+                }
             }, status=status.HTTP_200_OK)
+
         except Exception as e:
             print(f"Error en salida: {str(e)}")
             return Response({
-                "error": "Error al registrar salida"
-            }, status=status.HTTP_400_BAD_REQUEST)
+                "error": "Error interno del servidor",
+                "details": str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class VehiculosActivos(APIView):
     def get(self, request, matricula=None):

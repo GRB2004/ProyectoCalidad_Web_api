@@ -36,12 +36,12 @@ urlpatterns = [
     path('api/login/', SimpleLogin.as_view(), name='login'),
     path('api/logout/', SimpleLogout.as_view(), name='logout'),
     path('api/search/', StudentSearch.as_view(), name='student-search'),
+    
+    # Rutas de vehículos
     path('api/vehiculos/entrada/', SimpleEntry.as_view(), name='vehicle-entry'),
+    path('api/vehiculos/entrada/<str:matricula>/', SimpleEntry.as_view(), name='vehicle-entry-with-matricula'),
     path('api/vehiculos/salida/', SimpleExit.as_view(), name='vehicle-exit'),
+    path('api/vehiculos/salida/<str:matricula>/', SimpleExit.as_view(), name='vehicle-exit-with-matricula'),
     path('api/vehiculos/activos/<str:matricula>/', VehiculosActivos.as_view(), name='vehiculos-activos'),
     path('api/vehiculos/historial/<str:matricula>/', VehiculosHistorial.as_view(), name='vehiculos-historial'),
-
-    path('api/vehiculos/historial/<str:matricula>/', VehiculosHistorial.as_view(), name='vehiculos-historial'),
-    path('api/estudiantes/<str:matricula>/vehiculos/entrada/', SimpleEntry.as_view(), name='vehicle-entry'),
-    path('api/estudiantes/<str:matricula>/vehiculos/salida/', SimpleExit.as_view(), name='vehicle-exit'),
 ]
