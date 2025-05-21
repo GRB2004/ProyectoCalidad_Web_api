@@ -8,6 +8,12 @@ from django.db import transaction
 from .models import Estudiante
 from .serializers import EstudianteSerializer, CSVUploadSerializer
 from django.db.models import Q
+from rest_framework.pagination import PageNumberPagination
+
+class EstudiantePagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 1000
 
 class EstudianteViewSet(viewsets.ModelViewSet):
     queryset = Estudiante.objects.all()
@@ -22,6 +28,7 @@ class EstudianteViewSet(viewsets.ModelViewSet):
         'email'
     ]
     ordering_fields = '__all__'
+    pagination_class = EstudiantePagination
 
     @action(detail=False, methods=['post'], serializer_class=CSVUploadSerializer)
     def upload_csv(self, request):

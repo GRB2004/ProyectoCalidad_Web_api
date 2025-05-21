@@ -60,8 +60,9 @@ CORS_ORIGIN_WHITELIST = [
 
 REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 10,
-    'SEARCH_PARAM': 'q'
+    'PAGE_SIZE': 10,  # tamaño predeterminado
+    'MAX_PAGE_SIZE': 1000,  # tamaño máximo permitido
+    'PAGE_SIZE_QUERY_PARAM': 'page_size',  # parámetro para especificar tamaño
 }
 
 ROOT_URLCONF = 'vehiculos_backend.urls'
