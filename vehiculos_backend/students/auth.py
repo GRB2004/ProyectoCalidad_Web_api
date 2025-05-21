@@ -317,3 +317,77 @@ class VehiculosHistorial(APIView):
                 "error": "Error al obtener historial",
                 "details": str(e)
             }, status=status.HTTP_400_BAD_REQUEST)
+
+class UserRegistration(APIView):
+    def post(self, request):
+        print("\n=== DEBUG: Iniciando proceso de registro de usuario ===")
+        print("Datos recibidos en request.data:", request.data)
+        print("Content-Type:", request.content_type)
+        print("Método:", request.method)
+
+        # Validar campos requeridos
+        required_fields = ['username', 'email', 'password', 'first_name', 'last_name']
+        print("\nVerificando campos requeridos...")
+        for field in required_fields:
+            if not request.data.get(field):
+                print(f"ERROR: Campo faltante: {field}")
+                return Response({
+                    'error': f'El campo {field} es requerido'
+                }, status=status.HTTP_400_BAD_REQUEST)
+        print("Todos los campos requeridos están presentes")
+
+        try:
+            # Verificar si el usuario ya existe
+            User = get_user_model()
+            print(f"\nVerificando si existe usuario con email: {request.data['email']}")
+            if User.objects.filter(email=request.data['email']).exists():
+                print(f"ERROR: Ya existe un usuario con el email {request.data['email']}")
+                return Response({
+                    'error': 'Ya existe un usuario con este email'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            print("Email disponible para registro")
+
+            # Crear el usuario
+            print("\nCreando nuevo usuario...")
+            user = User.objects.create_user(
+                username=request.data['username'],
+                email=request.data['email'],
+                password=request.data['password'],
+                first_name=request.data['first_name'].strip(),
+                last_name=request.data['last_name'].strip()
+            )
+            print(f"Usuario creado exitosamente con ID: {user.id}")
+
+            # Crear el registro de estudiante
+            print("\nCreando registro de estudiante...")
+            nombre_completo = f"{request.data['first_name'].strip()} {request.data['last_name'].strip()}"
+            print(f"Nombre completo: {nombre_completo}")
+            print(f"Email: {request.data['email']}")
+            print(f"Matrícula a usar: {request.data['password']}")
+
+            estudiante = Estudiante.objects.create(
+                email=request.data['email'],
+                nombre=nombre_completo,
+                matricula=request.data['password']
+            )
+            print(f"Estudiante creado exitosamente con ID: {estudiante.id}")
+
+            print("\n=== Registro completado exitosamente ===")
+            return Response({
+                'message': 'Usuario registrado exitosamente',
+                'user_id': user.id,
+                'email': user.email,
+                'matricula': estudiante.matricula,
+                'nombre': nombre_completo
+            }, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            print(f"\nERROR CRÍTICO en el proceso de registro:")
+            print(f"Tipo de error: {type(e).__name__}")
+            print(f"Mensaje de error: {str(e)}")
+            print("Traceback completo:", e.__traceback__)
+            return Response({
+                'error': 'Error al registrar usuario',
+                'tipo_error': type(e).__name__,
+                'details': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

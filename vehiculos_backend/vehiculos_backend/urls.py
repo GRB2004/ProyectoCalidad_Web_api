@@ -21,7 +21,8 @@ from registro import views_registro
 from django.contrib import admin
 from students.auth import (
     SimpleLogin, SimpleLogout, StudentSearch, 
-    SimpleEntry, SimpleExit, VehiculosActivos, VehiculosHistorial
+    SimpleEntry, SimpleExit, VehiculosActivos, VehiculosHistorial,
+    UserRegistration
 )
 
 router = routers.DefaultRouter()
@@ -36,6 +37,7 @@ urlpatterns = [
     path('api/login/', SimpleLogin.as_view(), name='login'),
     path('api/logout/', SimpleLogout.as_view(), name='logout'),
     path('api/search/', StudentSearch.as_view(), name='student-search'),
+    path('api/register/', UserRegistration.as_view(), name='register'),
     
     # Rutas de vehículos
     path('api/vehiculos/entrada/', SimpleEntry.as_view(), name='vehicle-entry'),
